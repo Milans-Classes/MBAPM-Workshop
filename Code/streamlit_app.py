@@ -1,3 +1,16 @@
+# Workaround for Stlite WebAssembly environment: mock missing pyarrow classes
+# that narwhals/plotly tries to access if a partial pyarrow is present.
+try:
+    import pyarrow as pa
+    if not hasattr(pa, 'ChunkedArray'):
+        class MockChunkedArray: pass
+        pa.ChunkedArray = MockChunkedArray
+    if not hasattr(pa, 'Table'):
+        class MockTable: pass
+        pa.Table = MockTable
+except ImportError:
+    pass
+
 import os
 import streamlit as st
 import pandas as pd
