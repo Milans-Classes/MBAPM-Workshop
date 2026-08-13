@@ -41,11 +41,29 @@ st.markdown("""
 # Load data helper
 @st.cache_data
 def load_data():
-    path = "Data/refined data/cleaned_reelgood.csv"
-    if not os.path.exists(path):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        path = os.path.join(script_dir, "..", "Data", "refined data", "cleaned_reelgood.csv")
-    return pd.read_csv(path)
+    # Attempt 1: Local relative path from root
+    path1 = "Data/refined data/cleaned_reelgood.csv"
+    if os.path.exists(path1):
+        return pd.read_csv(path1)
+        
+    # Attempt 2: Local relative path from Code/ folder
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    path2 = os.path.join(script_dir, "..", "Data", "refined data", "cleaned_reelgood.csv")
+    if os.path.exists(path2):
+        return pd.read_csv(path2)
+        
+    # Attempt 3: Root of virtual filesystem (for Stlite WebAssembly deployment)
+    path3 = "cleaned_reelgood.csv"
+    if os.path.exists(path3):
+        return pd.read_csv(path3)
+        
+    # Attempt 4: Virtual filesystem inside script dir (Stlite default)
+    path4 = os.path.join(script_dir, "cleaned_reelgood.csv")
+    if os.path.exists(path4):
+        return pd.read_csv(path4)
+        
+    # Fallback to the first path if none exist to trigger standard file not found error
+    return pd.read_csv(path1)
 
 try:
     df = load_data()
