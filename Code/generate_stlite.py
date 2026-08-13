@@ -39,7 +39,7 @@ html_content = f"""<!DOCTYPE html>
         files: {{
           "streamlit_app.py": `{escaped_code}`,
           "cleaned_reelgood.csv": {{
-            url: "cleaned_reelgood.csv"
+            url: "../Data/refined%20data/cleaned_reelgood.csv"
           }}
         }}
       }}, document.getElementById("root"));
