@@ -14,6 +14,7 @@ The project is organized into two main folders for clean separation of code and 
 MBAPM-Workshop/
 ├── .gitignore               # Excludes large raw files and cache directories
 ├── README.md                # Documentation and analysis summary (this file)
+├── index.html               # GitHub Pages native serverless entry point
 ├── data/
 │   ├── cleaned_reelgood.csv # Pre-processed, deduplicated dataset (~1.0 MB - Tracked)
 │   └── raw/                 # Original source datasets (Gitignored due to >100MB size limits)
@@ -24,6 +25,7 @@ MBAPM-Workshop/
 └── code/
     ├── clean_data.py        # Python pre-processing and data-cleaning script
     ├── app.py               # Streamlit interactive dashboard code
+    ├── generate_index.py    # Generates index.html for serverless deployment
     └── requirements.txt     # Python environment dependencies
 ```
 
@@ -50,12 +52,19 @@ python code/clean_data.py
 ```
 This script will load the raw CSV, extract Netflix, Hulu, and Disney+ records, drop duplicates across multiple genres/tags, and export a clean catalog dataset.
 
-### 4. Launch the Streamlit Dashboard
+### 4. Launch the Streamlit Dashboard (Local Server)
 Run the Streamlit application to start the interactive web dashboard:
 ```bash
 streamlit run code/app.py
 ```
 The app will open automatically in your default browser at `http://localhost:8501`.
+
+### 5. Generate and Deploy to GitHub Pages (Serverless)
+To compile the Streamlit application code into a serverless HTML file that runs natively on GitHub Pages using WebAssembly (Stlite):
+```bash
+python code/generate_index.py
+```
+This will compile the Python code from `code/app.py` directly into the root `index.html`. Once pushed to GitHub, the dashboard is accessible natively in the browser via your GitHub Pages URL (e.g. `https://milans-classes.github.io/MBAPM-Workshop/`).
 
 ---
 
