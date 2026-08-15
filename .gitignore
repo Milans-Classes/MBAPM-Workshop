@@ -1,9 +1,10 @@
 # Exclude large raw datasets from Git tracking (to avoid GitHub's 100MB file limit)
+data/raw/
 Data/raw data/
 
 # Python caching
-__pycache__/
-*.pyc
+**/__pycache__/
+**/*.pyc
 
 # OS metadata
 .DS_Store
