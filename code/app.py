@@ -224,45 +224,24 @@ with col4:
 # ----------------------------------------------------
 # CHART ROW 1: PRIMARY CATALOG COMPARISON (DYNAMIC BAR GRAPH)
 # ----------------------------------------------------
-st.subheader("📊 Catalog Comparison: Number of Shows")
+st.subheader("📊 Catalog Comparison: Movies vs TV Shows")
 if not df_titles_unique.empty:
-    # Allow user to toggle between seeing total counts by platform or the Movies vs TV Shows format breakdown
-    bar_breakdown = st.radio(
-        "Catalog Breakdown View:", 
-        options=["Total Catalog Size by Platform", "Format Breakdown (Movies vs TV Shows)"], 
-        horizontal=True
-    )
+    # Group by Service and Content Type and compute unique count
+    agg_df = df_titles_unique.groupby(['Service', 'Type']).size().reset_index(name='Count')
+    agg_df['Type'] = agg_df['Type'].map(format_map)
     
-    if bar_breakdown == "Total Catalog Size by Platform":
-        # Group by platform and count total shows/movies
-        agg_df = df_titles_unique.groupby('Service').size().reset_index(name='Count')
-        fig_primary = px.bar(
-            agg_df,
-            x="Service",
-            y="Count",
-            color="Service",
-            color_discrete_map=color_map,
-            labels={"Service": "Streaming Platform", "Count": "Number of Shows"},
-            template="plotly_white",
-            text_auto=True
-        )
-    else:
-        # Group by Service and Content Type and compute unique count
-        agg_df = df_titles_unique.groupby(['Service', 'Type']).size().reset_index(name='Count')
-        agg_df['Type'] = agg_df['Type'].map(format_map)
-        
-        # Plotly clustered bar chart
-        fig_primary = px.bar(
-            agg_df,
-            x="Service",
-            y="Count",
-            color="Type",
-            barmode="group",
-            labels={"Service": "Streaming Platform", "Count": "Number of Titles", "Type": "Format"},
-            color_discrete_sequence=['#475569', '#38bdf8'], # Neutral slate for movies, light blue for TV shows
-            template="plotly_white",
-            text_auto=True
-        )
+    # Plotly clustered bar chart with darker professional shades
+    fig_primary = px.bar(
+        agg_df,
+        x="Service",
+        y="Count",
+        color="Type",
+        barmode="group",
+        labels={"Service": "Streaming Platform", "Count": "Number of Titles", "Type": "Format"},
+        color_discrete_sequence=['#1e293b', '#1e3a8a'], # Dark Slate Grey for Movies, Navy Blue for TV Shows
+        template="plotly_white",
+        text_auto=True
+    )
     
     fig_primary.update_layout(
         xaxis_title=None,
