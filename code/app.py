@@ -222,30 +222,51 @@ with col4:
     )
 
 # ----------------------------------------------------
-# CHART ROW 1: PRIMARY CATALOG COMPARISON
+# CHART ROW 1: PRIMARY CATALOG COMPARISON (DYNAMIC BAR GRAPH)
 # ----------------------------------------------------
-st.subheader("📊 Catalog Comparison: Movies vs TV Shows")
+st.subheader("📊 Catalog Comparison: Number of Shows")
 if not df_titles_unique.empty:
-    # Group by Service and Content Type and compute unique count
-    agg_df = df_titles_unique.groupby(['Service', 'Type']).size().reset_index(name='Count')
-    agg_df['Type'] = agg_df['Type'].map(format_map)
-    
-    # Plotly clustered bar chart
-    fig_primary = px.bar(
-        agg_df,
-        x="Service",
-        y="Count",
-        color="Type",
-        barmode="group",
-        labels={"Service": "Streaming Platform", "Count": "Number of Titles", "Type": "Format"},
-        color_discrete_sequence=['#475569', '#38bdf8'], # Neutral slate for movies, light blue for TV shows
-        template="plotly_white",
-        text_auto=True
+    # Allow user to toggle between seeing total counts by platform or the Movies vs TV Shows format breakdown
+    bar_breakdown = st.radio(
+        "Catalog Breakdown View:", 
+        options=["Total Catalog Size by Platform", "Format Breakdown (Movies vs TV Shows)"], 
+        horizontal=True
     )
+    
+    if bar_breakdown == "Total Catalog Size by Platform":
+        # Group by platform and count total shows/movies
+        agg_df = df_titles_unique.groupby('Service').size().reset_index(name='Count')
+        fig_primary = px.bar(
+            agg_df,
+            x="Service",
+            y="Count",
+            color="Service",
+            color_discrete_map=color_map,
+            labels={"Service": "Streaming Platform", "Count": "Number of Shows"},
+            template="plotly_white",
+            text_auto=True
+        )
+    else:
+        # Group by Service and Content Type and compute unique count
+        agg_df = df_titles_unique.groupby(['Service', 'Type']).size().reset_index(name='Count')
+        agg_df['Type'] = agg_df['Type'].map(format_map)
+        
+        # Plotly clustered bar chart
+        fig_primary = px.bar(
+            agg_df,
+            x="Service",
+            y="Count",
+            color="Type",
+            barmode="group",
+            labels={"Service": "Streaming Platform", "Count": "Number of Titles", "Type": "Format"},
+            color_discrete_sequence=['#475569', '#38bdf8'], # Neutral slate for movies, light blue for TV shows
+            template="plotly_white",
+            text_auto=True
+        )
     
     fig_primary.update_layout(
         xaxis_title=None,
-        yaxis_title="Title Count",
+        yaxis_title="Number of Shows/Movies",
         font=dict(family="sans-serif", size=12),
         margin=dict(l=20, r=20, t=20, b=20),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
@@ -255,7 +276,7 @@ else:
     st.info("No data available. Try resetting or expanding your sidebar filters.")
 
 # ----------------------------------------------------
-# CHART ROW 2: DETAILED INSIGHTS (Ratings & Trends)
+# CHART ROW 2: DETAILED INSIGHTS (Ratings Boxplot & Release Year KDE)
 # ----------------------------------------------------
 col_chart_left, col_chart_right = st.columns(2)
 
@@ -284,35 +305,74 @@ with col_chart_left:
         st.info("No IMDb rating data available for the selected filters.")
 
 with col_chart_right:
-    st.subheader("📈 Catalog Releases Over Time")
+    st.subheader("📈 Release Year Distribution (KDE)")
     df_years_plot = df_titles_unique.dropna(subset=['Released Year'])
-    if not df_years_plot.empty:
-        # Group by release year and service
-        trend_df = df_years_plot.groupby(['Released Year', 'Service']).size().reset_index(name='Titles Released')
+    if not df_years_plot.empty and len(selected_platforms) > 0:
+        y_min = float(df_years_plot['Released Year'].min())
+        y_max = float(df_years_plot['Released Year'].max())
         
-        # Filter for releases after 1995 for visual clarity, unless slider explicitly includes older
-        if selected_years[0] <= 1995:
-            trend_filtered = trend_df
+        if y_min == y_max:
+            st.info("Release year range is a single year. Expand the range in the sidebar to view the density curve.")
         else:
-            trend_filtered = trend_df[trend_df['Released Year'] >= selected_years[0]]
+            # Let the user choose between absolute volume (scaled by size) and relative normalized density
+            kde_mode = st.radio(
+                "KDE Curve Scaling:",
+                options=["Show Catalog Volume (Scaled by Size)", "Show Relative Distribution (Normalized)"],
+                horizontal=True,
+                help="Catalog Volume shows the actual density of titles released over time (preserving catalog size differences). Relative Distribution normalizes each platform's curve to have an equal area of 1."
+            )
             
-        fig_trends = px.line(
-            trend_filtered,
-            x="Released Year",
-            y="Titles Released",
-            color="Service",
-            color_discrete_map=color_map,
-            labels={"Released Year": "Release Year", "Titles Released": "Count"},
-            template="plotly_white",
-            line_shape="spline"
-        )
-        fig_trends.update_layout(
-            xaxis_title="Release Year",
-            yaxis_title="Number of Releases",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            margin=dict(l=20, r=20, t=20, b=20)
-        )
-        st.plotly_chart(fig_trends, use_container_width=True)
+            # Generate grid of years for KDE evaluation
+            grid = np.linspace(y_min, y_max, 200)
+            kde_data = []
+            
+            # Standard bandwidth for smooth representation of annual changes (2.0 years is highly appropriate)
+            bandwidth = 2.0
+            
+            for service in selected_platforms:
+                years = df_years_plot[df_years_plot['Service'] == service]['Released Year'].values
+                n = len(years)
+                if n > 0:
+                    if n >= 2:
+                        # Vectorized Gaussian KDE computation
+                        diff = (grid[:, None] - years[None, :]) / bandwidth
+                        density = np.sum(np.exp(-0.5 * diff**2) / np.sqrt(2 * np.pi), axis=1) / (n * bandwidth)
+                    else:
+                        # Fallback for single data point
+                        density = np.exp(-0.5 * ((grid - years[0])/bandwidth)**2) / (bandwidth * np.sqrt(2 * np.pi))
+                    
+                    # Scale by count if showing absolute catalog volume
+                    if kde_mode == "Show Catalog Volume (Scaled by Size)":
+                        density = density * n
+                        
+                    for y, d in zip(grid, density):
+                        kde_data.append({
+                            'Released Year': y,
+                            'Density': d,
+                            'Service': service
+                        })
+            
+            if kde_data:
+                kde_df = pd.DataFrame(kde_data)
+                fig_kde = px.area(
+                    kde_df,
+                    x="Released Year",
+                    y="Density",
+                    color="Service",
+                    color_discrete_map=color_map,
+                    labels={"Released Year": "Release Year", "Density": "Title Density (Volume)" if kde_mode == "Show Catalog Volume (Scaled by Size)" else "Relative Density"},
+                    template="plotly_white",
+                    line_shape="spline"
+                )
+                fig_kde.update_layout(
+                    xaxis_title="Release Year",
+                    yaxis_title="Title Density (Volume)" if kde_mode == "Show Catalog Volume (Scaled by Size)" else "Relative Density",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                    margin=dict(l=20, r=20, t=20, b=20)
+                )
+                st.plotly_chart(fig_kde, use_container_width=True)
+            else:
+                st.info("No data available to plot KDE.")
     else:
         st.info("No release year data available for the selected filters.")
 

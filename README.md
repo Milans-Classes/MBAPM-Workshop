@@ -71,9 +71,9 @@ This will compile the Python code from `code/app.py` directly into the root `ind
 ## Dashboard Features
 
 - **Summary Cards**: Quick metrics showing total unique titles, average IMDb ratings, and the breakdown share of movies vs. TV shows.
-- **Movies vs. TV Shows Comparison Chart**: A clustered bar chart comparing the distribution of titles (Movies vs. TV Shows) across Netflix, Hulu, and Disney+.
+- **Dynamic Catalog Comparison Bar Chart**: An interactive bar chart comparing title counts across Netflix, Hulu, and Disney+, with dynamic support for toggling between total catalog scale and Movies vs. TV Shows breakdown format. It responds in real-time to IMDb ratings and release year filters.
 - **IMDb Rating Boxplot**: An interactive boxplot highlighting rating spreads, medians, and outliers for each service.
-- **Release Trends Line Chart**: Tracks catalog releases by platform over the years, showing historical depth.
+- **Release Year Distribution (KDE) Plot**: A Kernel Density Estimation curve of content release years, showing when content on each platform was released. Features dynamic bandwidth smoothing and selectable scaling (absolute catalog volume vs. normalized relative distribution).
 - **Catalog Explorer**: An interactive table that allows users to search titles and sort by IMDb ratings, release years, or platforms.
 - **Interactive Sidebar Filters**: Allows users to filter all metrics and graphs by:
   - Streaming Platforms
